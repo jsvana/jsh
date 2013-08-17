@@ -10,7 +10,9 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define INPUT_BUFFER_SIZE 8
+#define INPUT_BUFFER_SIZE 256
+#define PROMPT ": "
+#define PATH "/bin:/usr/bin"
 
 /**
  * Fetches line of input from stdin
@@ -51,7 +53,9 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, handler);
 	fprintf(stdout, ": ");
 	int len = getInput(&input);
-	char *path = find("/usr/include", input);
+	char *p = (char *)malloc(sizeof(char) * 13);
+	strcpy(p, "/bin:/usr/bin");
+	char *path = find(p, input);
 
 	if (path == NULL) {
 		printf("Not found\n");

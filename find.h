@@ -8,4 +8,6 @@
  */
 char *find(char *dir, char *binary);
 
+char *findInDir(char *dir, char *binary);
+
 #endif
