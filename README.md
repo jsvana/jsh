@@ -1,3 +1,3 @@
 # Term
 
-A simple terminal.
+A simple shell with a misleading name.
