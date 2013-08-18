@@ -60,7 +60,12 @@ int process(int argc, char **argv, environment env) {
 		char *path = find(getValue(getEnv(env, "PATH")), command);
 
 		if (path != NULL) {
-			fprintf(stdout, "Path: %s\n", path);
+			int cpid = fork();
+			if (cpid == 0) {
+				execve(path, argv, env.variables);
+			} else {
+				wait(NULL);
+			}
 			free(path);
 
 			return TRUE;

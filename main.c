@@ -78,6 +78,10 @@ void parseInput(char *input, int *argc, char ***argv) {
 
 		start = end + 1;
 	}
+
+	*argv = (char **)realloc(*argv, sizeof(char *) * (*argc + 1));
+
+	(*argv)[*argc] = NULL;
 }
 
 void cleanupCommand(int argc, char **argv) {
