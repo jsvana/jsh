@@ -1,3 +1,5 @@
+#include "command.h"
+#include "environment.h"
 #include "find.h"
 #include "logging.h"
 #include "signals.h"
@@ -12,7 +14,10 @@
 
 #define INPUT_BUFFER_SIZE 256
 #define PROMPT ": "
-#define PATH "/bin:/usr/bin"
+#define MAX_PATH_LEN 256
+
+int termRunning = TRUE;
+char *cwd;
 
 /**
  * Fetches line of input from stdin
@@ -37,7 +42,7 @@ int getInput(char **input) {
 		if (read == INPUT_BUFFER_SIZE) {
 			*input = (char *)realloc(*input,
 				sizeof(char) * INPUT_BUFFER_SIZE + totalRead);
-			memset(*input + totalRead, 0, INPUT_BUFFER_SIZE);
+			memset(*input + totalRead, 0, sizeof(char) * INPUT_BUFFER_SIZE);
 			read = 0;
 		}
 	}
@@ -47,24 +52,76 @@ int getInput(char **input) {
 	return totalRead;
 }
 
-int main(int argc, char *argv[]) {
-	char *input;
+void parseInput(char *input, int *argc, char ***argv) {
+	*argc = 0;
+	int start = 0, end = 0;
+	int len = strlen(input);
 
-	signal(SIGINT, handler);
-	fprintf(stdout, ": ");
-	int len = getInput(&input);
-	char *p = (char *)malloc(sizeof(char) * 13);
-	strcpy(p, "/bin:/usr/bin");
-	char *path = find(p, input);
+	*argv = NULL;
 
-	if (path == NULL) {
-		printf("Not found\n");
-	} else {
-		printf("path: %s\n", path);
+	while (end < len) {
+		while (end < len && input[end] != ' ') {
+			++end;
+		}
+
+		input[end] = '\0';
+
+		++*argc;
+
+		*argv = (char **)realloc(*argv, sizeof(char *) * *argc);
+
+		int len = strlen(input + start) + 1;
+
+		(*argv)[*argc - 1] = (char *)malloc(sizeof(char) * len);
+		memset((*argv)[*argc - 1], 0, sizeof(char) * len);
+		strncpy((*argv)[*argc - 1], input + start, end - start);
+
+		start = end + 1;
+	}
+}
+
+void cleanupCommand(int argc, char **argv) {
+	for (int i = 0; i < argc; i++) {
+		free(argv[i]);
 	}
 
-	free(input);
-	free(path);
+	free(argv);
+}
+
+void prompt() {
+	fprintf(stdout, "%s: ", cwd);
+}
+
+int main(int argc, char **argv, char **envp) {
+	char *input;
+	int len, code;
+
+	environment env;
+
+	signalsInit();
+	environmentInit(&env, envp);
+
+	cwd = getcwd(NULL, 0);
+
+	char p[MAX_PATH_LEN];
+	int argC;
+	char **argV;
+
+	memset(p, 0, sizeof(char) * MAX_PATH_LEN);
+	strncpy(p, "/bin:/usr/bin", MAX_PATH_LEN - 1);
+
+	while (termRunning) {
+		prompt();
+
+		len = getInput(&input);
+		parseInput(input, &argC, &argV);
+
+		code = process(argC, argV, env);
+
+		free(input);
+
+		cleanupCommand(argC, argV);
+	}
 
 	return 0;
 }

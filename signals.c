@@ -1,6 +1,6 @@
 #include "signals.h"
 
-int signals_init() {
+int signalsInit() {
 	sig_t ret;
 
 	ret = signal(SIGINT, handler);
@@ -14,7 +14,7 @@ int signals_init() {
 
 void handler(int signal) {
 	if (signal == 2) {
-		fprintf(stdout, "\nExiting\n");
+		fprintf(stdout, "\nExiting...\n");
 		exit(0);
 	}
 }

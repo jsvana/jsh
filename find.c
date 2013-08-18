@@ -9,6 +9,8 @@
 
 #define BLOCK_SIZE 256
 
+extern char *cwd;
+
 char *find(char *path, char *binary) {
 	int len = strlen(path);
 
@@ -26,11 +28,12 @@ char *find(char *path, char *binary) {
 			++last;
 		}
 
-		memset(sub, 0, BLOCK_SIZE);
+		memset(sub, 0, sizeof(char) * BLOCK_SIZE);
 
 		strncpy(sub, path + first, last - first);
 
 		char *found = findInDir(sub, binary);
+		chdir(cwd);
 
 		if (found != NULL) {
 			return found;
@@ -49,7 +52,6 @@ char *findInDir(char *dir, char *binary) {
 	struct stat statbuf;
 
 	if ((dp = opendir(dir)) == NULL) {
-		fprintf(stderr, "Cannot open directory: %s\n", dir);
 		return NULL;
 	}
 
@@ -64,13 +66,14 @@ char *findInDir(char *dir, char *binary) {
 			}
 
 			char *found = findInDir(entry->d_name, binary);
+
+			chdir("..");
+
 			if (found != NULL) {
-				chdir("..");
 				closedir(dp);
 
 				return found;
 			}
-			chdir("..");
 		} else {
 			if (strcmp(binary, entry->d_name) == 0) {
 				char *cwd = getcwd(NULL, 0);
@@ -83,6 +86,7 @@ char *findInDir(char *dir, char *binary) {
 
 				free(cwd);
 
+				chdir("..");
 				closedir(dp);
 
 				return result;

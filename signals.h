@@ -13,7 +13,7 @@
  * Initialize signal capture
  * @return Success of function
  */
-int signals_init();
+int signalsInit();
 
 /**
  * Handler for signals
