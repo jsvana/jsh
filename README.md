@@ -1,3 +1,3 @@
-# Term
+# jsh
 
-A simple shell with a misleading name.
+A simple shell.

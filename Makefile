@@ -1,5 +1,5 @@
 CC=clang
-PROG=term
+PROG=jsh
 OBJS=main.o logging.o signals.o find.o command.o environment.o
 CFLAGS=-g -ggdb
 

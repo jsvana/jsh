@@ -10,12 +10,13 @@
 
 extern int termRunning;
 extern char *cwd;
+extern int lastStatus;
 
 int process(int argc, char **argv, environment env) {
 	char *command = argv[0];
 
 	if (argc == 0) {
-		return TRUE;
+		return lastStatus;
 	} else if (strcmp(command, "exit") == 0) {
 		fprintf(stdout, "Exiting...\n");
 		termRunning = FALSE;
@@ -64,7 +65,13 @@ int process(int argc, char **argv, environment env) {
 			if (cpid == 0) {
 				execve(path, argv, env.variables);
 			} else {
-				wait(NULL);
+				int status;
+				wait(&status);
+				if (WIFEXITED(status)) {
+					return WEXITSTATUS(status) == 0;
+				} else {
+					return FALSE;
+				}
 			}
 			free(path);
 
@@ -72,7 +79,7 @@ int process(int argc, char **argv, environment env) {
 		}
 	}
 
-	fprintf(stderr, "Unknown command \"%s\"\n", command);
+	fprintf(stderr, "jsh: Unknown command \"%s\"\n", command);
 
 	return FALSE;
 }

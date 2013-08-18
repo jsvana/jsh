@@ -17,6 +17,7 @@
 #define MAX_PATH_LEN 256
 
 int termRunning = TRUE;
+int lastStatus;
 char *cwd;
 
 /**
@@ -93,7 +94,7 @@ void cleanupCommand(int argc, char **argv) {
 }
 
 void prompt() {
-	fprintf(stdout, "%s: ", cwd);
+	fprintf(stdout, "(%d) %s: ", lastStatus, cwd);
 }
 
 int main(int argc, char **argv, char **envp) {
@@ -106,6 +107,7 @@ int main(int argc, char **argv, char **envp) {
 	environmentInit(&env, envp);
 
 	cwd = getcwd(NULL, 0);
+	lastStatus = TRUE;
 
 	char p[MAX_PATH_LEN];
 	int argC;
@@ -120,7 +122,7 @@ int main(int argc, char **argv, char **envp) {
 		len = getInput(&input);
 		parseInput(input, &argC, &argV);
 
-		code = process(argC, argV, env);
+		lastStatus = process(argC, argV, env);
 
 		free(input);
 
