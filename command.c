@@ -2,6 +2,7 @@
 
 #include "defines.h"
 #include "find.h"
+#include "logging.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -11,12 +12,36 @@
 extern int termRunning;
 extern char *cwd;
 extern int lastStatus;
+extern int cpid;
 
 int process(int argc, char **argv, environment env) {
 	char *command = argv[0];
 
 	if (argc == 0) {
 		return lastStatus;
+	} else if (strlen(command) > 2 && command[0] == '.' && command[1] == '/') {
+		char *path;
+		asprintf(&path, "%s/%s", cwd, command);
+		if (path == NULL) {
+			TERM_ERR("Unable to allocate asprintf memory\n");
+		}
+
+		cpid = fork();
+		if (cpid < 0) {
+			TERM_ERR("Unable to fork\n");
+		} else if (cpid == 0) {
+			execve(path, argv, env.variables);
+		} else {
+			int status;
+			wait(&status);
+			if (WIFEXITED(status)) {
+				return WEXITSTATUS(status) == 0;
+			} else {
+				return FALSE;
+			}
+		}
+		free(path);
+		cpid = -1;
 	} else if (strcmp(command, "exit") == 0) {
 		fprintf(stdout, "Exiting...\n");
 		termRunning = FALSE;
@@ -61,8 +86,10 @@ int process(int argc, char **argv, environment env) {
 		char *path = find(getValue(getEnv(env, "PATH")), command);
 
 		if (path != NULL) {
-			int cpid = fork();
-			if (cpid == 0) {
+			cpid = fork();
+			if (cpid < 0) {
+				TERM_ERR("Unable to fork\n");
+			} else if (cpid == 0) {
 				execve(path, argv, env.variables);
 			} else {
 				int status;
@@ -74,6 +101,7 @@ int process(int argc, char **argv, environment env) {
 				}
 			}
 			free(path);
+			cpid = -1;
 
 			return TRUE;
 		}

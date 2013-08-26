@@ -1,9 +1,11 @@
 #include "command.h"
+#include "defines.h"
 #include "environment.h"
 #include "find.h"
 #include "logging.h"
 #include "signals.h"
 
+#include <readline/readline.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -19,41 +21,14 @@
 int termRunning = TRUE;
 int lastStatus;
 char *cwd;
-
-/**
- * Fetches line of input from stdin
- * input must be freed before use
- * @param input Pointer to string to be allocated
- * @return Length of read string
- */
-int getInput(char **input) {
-	char buffer[INPUT_BUFFER_SIZE];
-	int read = 0, totalRead = 0;
-	*input = (char *)malloc(sizeof(char) * INPUT_BUFFER_SIZE);
-
-	if (*input == NULL) {
-		term_err("Unable to allocate memory");
-	}
-
-	memset(*input, 0, sizeof(char) * INPUT_BUFFER_SIZE);
-
-	while (((*input)[totalRead] = getc(stdin)) != '\n') {
-		++read;
-		++totalRead;
-		if (read == INPUT_BUFFER_SIZE) {
-			*input = (char *)realloc(*input,
-				sizeof(char) * INPUT_BUFFER_SIZE + totalRead);
-			memset(*input + totalRead, 0, sizeof(char) * INPUT_BUFFER_SIZE);
-			read = 0;
-		}
-	}
-
-	(*input)[totalRead] = '\0';
-
-	return totalRead;
-}
+char *user;
+int cpid = -1;
 
 void parseInput(char *input, int *argc, char ***argv) {
+	if (input == NULL) {
+		return;
+	}
+
 	*argc = 0;
 	int start = 0, end = 0;
 	int len = strlen(input);
@@ -74,6 +49,9 @@ void parseInput(char *input, int *argc, char ***argv) {
 		int len = strlen(input + start) + 1;
 
 		(*argv)[*argc - 1] = (char *)malloc(sizeof(char) * len);
+		if ((*argv)[*argc - 1] == NULL) {
+			TERM_ERR("Unable to allocate memory\n");
+		}
 		memset((*argv)[*argc - 1], 0, sizeof(char) * len);
 		strncpy((*argv)[*argc - 1], input + start, end - start);
 
@@ -93,8 +71,10 @@ void cleanupCommand(int argc, char **argv) {
 	free(argv);
 }
 
-void prompt() {
-	fprintf(stdout, "(%d) %s: ", lastStatus, cwd);
+char *prompt(environment env) {
+	char *p;
+	asprintf(&p, "%s%s%s: ", COLOR_RED, cwd, COLOR_WHITE);
+	return p;
 }
 
 int main(int argc, char **argv, char **envp) {
@@ -106,7 +86,10 @@ int main(int argc, char **argv, char **envp) {
 	signalsInit();
 	environmentInit(&env, envp);
 
+	using_history();
+
 	cwd = getcwd(NULL, 0);
+	user = getValue(getEnv(env, "USER"));
 	lastStatus = TRUE;
 
 	char p[MAX_PATH_LEN];
@@ -116,10 +99,20 @@ int main(int argc, char **argv, char **envp) {
 	memset(p, 0, sizeof(char) * MAX_PATH_LEN);
 	strncpy(p, "/bin:/usr/bin", MAX_PATH_LEN - 1);
 
-	while (termRunning) {
-		prompt();
+	TERM_LOG("asdf %s\n", "fdsa");
 
-		len = getInput(&input);
+	while (termRunning) {
+		char *p = prompt(env);
+		char *input = readline(p);
+		if (input == NULL) {
+			fprintf(stdout, "\n");
+			termRunning = FALSE;
+			break;
+		}
+		free(p);
+		if (input != NULL && strlen(input) != 0) {
+			add_history(input);
+		}
 		parseInput(input, &argC, &argV);
 
 		lastStatus = process(argC, argV, env);
