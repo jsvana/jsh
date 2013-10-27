@@ -99,8 +99,6 @@ int main(int argc, char **argv, char **envp) {
 	memset(p, 0, sizeof(char) * MAX_PATH_LEN);
 	strncpy(p, "/bin:/usr/bin", MAX_PATH_LEN - 1);
 
-	TERM_LOG("asdf %s\n", "fdsa");
-
 	while (termRunning) {
 		char *p = prompt(env);
 		char *input = readline(p);
